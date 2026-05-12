@@ -74,18 +74,10 @@
             text-align: center;
         }
 
-        .odd-one {
-            color: #e74c3c !important; /* Red for Odd One */
-        }
+        .odd-one { color: #e74c3c !important; }
+        .normal-word { color: #2ecc71; }
 
-        .normal-word {
-            color: #2ecc71; /* Green for Matches */
-        }
-
-        .controls {
-            display: flex;
-            gap: 25px;
-        }
+        .controls { display: flex; gap: 25px; }
 
         button {
             font-family: 'Balsamiq Sans', cursive;
@@ -104,15 +96,7 @@
         #reveal-btn { background-color: #9b59b6; }
         #next-btn { background-color: #3498db; }
 
-        button:hover {
-            filter: brightness(1.1);
-            transform: scale(1.05);
-        }
-
-        button:active {
-            transform: translateY(4px);
-            box-shadow: 0 2px 0 rgba(0,0,0,0.15);
-        }
+        button:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0,0,0,0.15); }
     </style>
 </head>
 <body>
@@ -120,15 +104,15 @@
     <h1>Hear the Odd One Out!</h1>
 
     <div class="game-container">
-        <div class="box" onclick="speakWord(0)">
+        <div class="box" onclick="playAudio(0)">
             <span class="box-number" id="num-0">1</span>
             <span class="word-label" id="word-0"></span>
         </div>
-        <div class="box" onclick="speakWord(1)">
+        <div class="box" onclick="playAudio(1)">
             <span class="box-number" id="num-1">2</span>
             <span class="word-label" id="word-1"></span>
         </div>
-        <div class="box" onclick="speakWord(2)">
+        <div class="box" onclick="playAudio(2)">
             <span class="box-number" id="num-2">3</span>
             <span class="word-label" id="word-2"></span>
         </div>
@@ -140,32 +124,30 @@
     </div>
 
     <script>
-        // Updated Vocabulary Categories
         const categories = [
             { name: "/ch/", words: ["chicken", "church", "lunch", "chair", "catch"] },
             { name: "/sh/", words: ["shop", "short", "fish", "sheep", "wish"] }
         ];
 
         let currentWords = [];
+        let audioElements = [null, null, null];
 
         function initRound() {
-            window.speechSynthesis.cancel();
-            
             // Reset UI
             for (let i = 0; i < 3; i++) {
                 document.getElementById(`word-${i}`).style.display = 'none';
                 document.getElementById(`num-${i}`).style.display = 'block';
                 document.getElementById(`word-${i}`).classList.remove('odd-one', 'normal-word');
+                if (audioElements[i]) {
+                    audioElements[i].pause();
+                }
             }
 
-            // Decide which category provides the pair and which provides the odd one
             const isChPair = Math.random() < 0.5;
             const pairCat = isChPair ? categories[0] : categories[1];
             const oddCat = isChPair ? categories[1] : categories[0];
 
-            // Get two unique words from the pair category
             const pairWords = [...pairCat.words].sort(() => 0.5 - Math.random()).slice(0, 2);
-            // Get one word from the odd category
             const oddWord = oddCat.words[Math.floor(Math.random() * oddCat.words.length)];
 
             let roundSet = [
@@ -174,12 +156,15 @@
                 { word: oddWord, isOdd: true }
             ];
 
-            // Shuffle the positions (1, 2, or 3)
             currentWords = roundSet.sort(() => 0.5 - Math.random());
             
             currentWords.forEach((item, index) => {
                 const el = document.getElementById(`word-${index}`);
                 el.innerText = item.word;
+                
+                // Create/Preload audio objects
+                audioElements[index] = new Audio(`${item.word}.mp3`);
+                
                 if (item.isOdd) {
                     el.classList.add('odd-one');
                 } else {
@@ -188,16 +173,21 @@
             });
         }
 
-        function speakWord(index) {
-            window.speechSynthesis.cancel();
+        function playAudio(index) {
+            // Stop any audio currently playing
+            audioElements.forEach(audio => {
+                if (audio) {
+                    audio.pause();
+                    audio.currentTime = 0;
+                }
+            });
 
-            const utterance = new SpeechSynthesisUtterance(currentWords[index].word);
-            
-            utterance.rate = 0.75; // 25% slower for clarity
-            utterance.pitch = 1.1; 
-            utterance.lang = 'en-US';
-            
-            window.speechSynthesis.speak(utterance);
+            // Play the selected file
+            if (audioElements[index]) {
+                audioElements[index].play().catch(e => {
+                    console.warn(`Audio file ${currentWords[index].word}.mp3 not found.`);
+                });
+            }
         }
 
         function revealWords() {
@@ -207,7 +197,6 @@
             }
         }
 
-        // Start first round
         initRound();
     </script>
 </body>
